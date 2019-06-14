@@ -43,6 +43,15 @@ class   ExcelMan:
         """
         self.__sheet =  self.__book.worksheets[sheetIndex]
 
+    def openSheetByName(self, name ):
+        """
+        シート名でシートをオープンする
+        :param name: シート名
+        :return:
+        """
+        self.__sheet =  self.__book[name]
+
+
     def getCell(self, row, col):
         """
         指定したセルを得る
@@ -167,11 +176,18 @@ class   ExcelMan:
 ###########################
 if __name__ == '__main__':
     print("####テストスタート#####")
-    tergetObj = ExcelMan("sample.xlsx")             # "sample.xlsxファイルの管理オブジェクトを作る
+    tergetObj = ExcelMan("data\\sample1.xlsx")             # "sample.xlsxファイルの管理オブジェクトを作る
     tergetObj.openBook()                               # "sample.xlsxファイルを開く
     sheetList = tergetObj.getSheetList()               # シートの一覧を得る
     print("sheetList=")
     print(sheetList)                                    #シートの一覧を表示
+
+
+    tergetObj.openSheetByName("Sheet1")               # 2番目のシートを開く
+    rows = tergetObj.numOfRow()                         #行数を得る
+    cols = tergetObj.numOfCol()                         #列数を得る
+    print( "row=", rows, "colum=", cols )           #行数と列数を表示
+
     tergetObj.openSheet(0)                              #先頭のシートを開く
     rows = tergetObj.numOfRow()                         #行数を得る
     cols = tergetObj.numOfCol()                         #列数を得る
