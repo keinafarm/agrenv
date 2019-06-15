@@ -3,6 +3,7 @@ from openpyxl.cell import Cell
 
 from ExcelMan import ExcelMan
 from Debug import Debug
+from EraProc import EraProc
 import re
 
 
@@ -153,6 +154,8 @@ class ExcelManForAgrenv():
         self.data = None  # ほ場一覧シートのデータを保持する
         self.dataLine = 0  # データ開始行
         # タイトル情報
+        self.PERSON_NAME = TitleInfo(r"構成員(.|\n)*?（漢字）")
+        self.AREA = TitleInfo(r"取組面積")
         self.TITLE_LINE_KEY = TitleInfo(r"取組名称")
         self.IMPLE_START_YEAR = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?開始年")
         self.IMPLE_START_MONTH = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?開始月")
@@ -167,6 +170,8 @@ class ExcelManForAgrenv():
         # タイトル情報を保持する
         titleCellList = [
             self.TITLE_LINE_KEY,
+            self.PERSON_NAME,
+            self.AREA,
             self.IMPLE_START_YEAR,
             self.IMPLE_START_MONTH,
             self.IMPLE_END_YEAR,
@@ -267,6 +272,8 @@ class ExcelManForAgrenv():
         lineData = self.data.selectline(titleLine)
 
         self.TITLE_LINE_KEY.searchOnLine(lineData)        # 取組名称
+        self.PERSON_NAME.searchOnLine(lineData)        # 構成員名
+        self.AREA.searchOnLine(lineData)        # 取り組み面積
         self.IMPLE_START_YEAR.searchOnLine(lineData)       # 実施開始年
         self.IMPLE_START_MONTH.searchOnLine(lineData)       # 実施開始月
         self.IMPLE_END_YEAR.searchOnLine(lineData)       # 実施終了年
@@ -278,6 +285,8 @@ class ExcelManForAgrenv():
         self.CULTIVATED_END_MONTH.searchOnLine( lineData)  # 栽培終了月
         Approach.setInfoLocation(
             self.TITLE_LINE_KEY,  # 取組名称
+            self.PERSON_NAME,       # 構成員名
+            self.AREA,       # 構成員名
             self.IMPLE_START_YEAR,  # 実施開始年
             self.IMPLE_START_MONTH,  # 実施開始月
             self.IMPLE_END_YEAR,  # 実施終了年
@@ -317,6 +326,8 @@ class   Approach():
         "冬季湛水",
     ]
     TITLE_LINE_KEY = None  # 取組名称
+    PERSON_NAME = None      # 構成員名
+    AREA = None      # 取り組み面積
     IMPLE_START_YEAR = None  # 実施開始年
     IMPLE_START_MONTH = None  # 実施開始月
     IMPLE_END_YEAR = None  # 実施終了年
@@ -330,6 +341,8 @@ class   Approach():
     @classmethod
     def setInfoLocation(cls,
                         TITLE_LINE_KEY,  # 取組名称
+                        PERSON_NAME,      # 構成員名
+                        AREA,      # 取り組み面積
                         IMPLE_START_YEAR,  # 実施開始年
                         IMPLE_START_MONTH,  # 実施開始月
                         IMPLE_END_YEAR,  # 実施終了年
@@ -340,7 +353,25 @@ class   Approach():
                         CULTIVATED_END_YEAR,  # 栽培終了年
                         CULTIVATED_END_MONTH  # 栽培終了月
                         ):
+        """
+        各情報の位置を決定するための情報を受取る
+        :param TITLE_LINE_KEY:
+        :param PERSON_NAME:
+        :param AREA:
+        :param IMPLE_START_YEAR:
+        :param IMPLE_START_MONTH:
+        :param IMPLE_END_YEAR:
+        :param IMPLE_END_MONTH:
+        :param PRODUCE_NAME:
+        :param CULTIVATED_START_YEAR:
+        :param CULTIVATED_START_MONTH:
+        :param CULTIVATED_END_YEAR:
+        :param CULTIVATED_END_MONTH:
+        :return:
+        """
         cls.TITLE_LINE_KEY = TITLE_LINE_KEY  # 取組名称
+        cls.PERSON_NAME = PERSON_NAME  # 構成員名
+        cls.AREA = AREA  # 取り組み面積
         cls.IMPLE_START_YEAR = IMPLE_START_YEAR  # 実施開始年
         cls.IMPLE_START_MONTH = IMPLE_START_MONTH  # 実施開始月
         cls.IMPLE_END_YEAR = IMPLE_END_YEAR  # 実施終了年
@@ -363,10 +394,57 @@ class   Approach():
             if result:
                 break;
 
+        retObj = Approach(lineData,typeName )
         if (result == None) or (typeName == cls.APPROACH_NAMES[0]):
             return None             # 一致しない取組名称と、●対象外は無視
 
-        retObj = Approach(lineData,typeName )
+        try:
+            # 構成員名を得る
+            cell = lineData.getCell(Approach.PERSON_NAME.col()).value
+            retObj.setPersonName(cell)
+
+            # 面積を得る
+            cell = lineData.getCell(Approach.AREA.col()).value
+            area = float(cell)
+            retObj.setArea(area)
+
+            # 実施開始期間を得る
+            cell = lineData.getCell(Approach.IMPLE_START_YEAR.col()).value
+            year = int(cell)
+            cell = lineData.getCell(Approach.IMPLE_START_MONTH.col()).value
+            month = int(cell)
+            start = EraProc( year, month, 1 )
+
+            # 実施終了期間を得る
+            cell = lineData.getCell(Approach.IMPLE_END_YEAR.col()).value
+            year = int(cell)
+            cell = lineData.getCell(Approach.IMPLE_END_MONTH.col()).value
+            month = int(cell)
+            end = EraProc( year, month, 1 )
+            retObj.setImple(start,end)
+
+            # 栽培開始期間を得る
+            cell = lineData.getCell(Approach.CULTIVATED_START_YEAR.col()).value
+            year = int(cell)
+            cell = lineData.getCell(Approach.CULTIVATED_START_MONTH.col()).value
+            month = int(cell)
+            start = EraProc(year, month, 1)
+
+            # 栽培終了期間を得る
+            cell = lineData.getCell(Approach.CULTIVATED_END_YEAR.col()).value
+            year = int(cell)
+            cell = lineData.getCell(Approach.CULTIVATED_END_MONTH.col()).value
+            month = int(cell)
+            end = EraProc(year, month, 1)
+            retObj.setculti(start,end)
+
+            name = lineData.getCell(Approach.PRODUCE_NAME.col()).value
+            retObj.setProduce(name)
+        except:
+            Debug.error("期間が不正です。無視します")
+            return None
+
+        Debug.print( retObj.print() )
         return  retObj
 
     def __init__(self, lineData, typeName):
@@ -376,9 +454,27 @@ class   Approach():
         """
         self.apptoachType = typeName
         self.data = lineData
+    def setPersonName(self, name):
+        self.personName = name
+
+    def setArea(self, area):
+        self.area = area
+
+    def setImple(self, start, end ):
+        self.impleStart = start
+        self.impleEnd = end
+
+    def setculti(self, start, end ):
+        self.cultiStart = start
+        self.cultiEnd = end
+
+    def setProduce(self, name):
+        self.produceName = name
 
     def print(self):
-        return self.apptoachType+":"+self.data.getCell(3).value
+        return self.personName + " (" + str(self.area) + "a)"+\
+                self.apptoachType+":" + self.produceName + " = " +  self.impleStart.print() + "～" + self.impleEnd.print() +\
+               " |  " +  self.cultiStart.print() + "～"+ self.cultiEnd.print()
 
 
 ###########################
