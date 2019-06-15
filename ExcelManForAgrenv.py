@@ -11,6 +11,7 @@ class TitleInfo():
     """
     タイトル行の情報
     """
+
     def __init__(self, pattern):
         """
         コンストラクタ
@@ -49,7 +50,8 @@ class TitleInfo():
         return False
 
     def col(self):
-        return  self.colNum
+        return self.colNum
+
 
 class LineData():
     def __init__(self, lineData):
@@ -72,7 +74,8 @@ class LineData():
         if self.itrCount >= len(self.data):
             raise StopIteration()
         self.itrCount += 1
-        return self.data[self.itrCount-1]
+        return self.data[self.itrCount - 1]
+
 
 class SheetData(ExcelMan):
     """
@@ -98,7 +101,7 @@ class SheetData(ExcelMan):
                 cellObj = super().getCell(row, col)
                 lineData.append(cellObj)
             self._data.append(lineData)
-            lineData =  LineData([])
+            lineData = LineData([])
 
     def selectline(self, rowNo):
         """
@@ -135,9 +138,7 @@ class ExcelManForAgrenv():
     環境直払い　実施計画書のファイルを読み込んで、申請書類のデータを作成する
     """
 
-    TERGET_SHEET_NAME = "◎ほ場一覧（全構成員）"               # 対象となるシートの名前
-
-
+    TERGET_SHEET_NAME = "◎ほ場一覧（全構成員）"  # 対象となるシートの名前
 
     #############################
     #
@@ -183,11 +184,11 @@ class ExcelManForAgrenv():
             self.CULTIVATED_END_MONTH
         ]
 
-        self.data = SheetData(file, self.TERGET_SHEET_NAME)        # シートデータを読み込む
+        self.data = SheetData(file, self.TERGET_SHEET_NAME)  # シートデータを読み込む
         self.approachs = []
 
         if not (self.approachList()):
-            Debug.error( "データの形式が思ってた通りでは無かったです　ごめんなさい")
+            Debug.error("データの形式が思ってた通りでは無かったです　ごめんなさい")
             raise ValueError
 
     #############################
@@ -202,7 +203,7 @@ class ExcelManForAgrenv():
         :param pattern:　正規表現で記載された検索パターン
         :return:　セルオブジェクト　無い時はNone
         """
-        for lineNo in range(1,self.data.numOfRow()):           # 最初の行からチェック
+        for lineNo in range(1, self.data.numOfRow()):  # 最初の行からチェック
             result = self.searchInLine(lineNo, pattern)
             if result:
                 return result
@@ -217,19 +218,19 @@ class ExcelManForAgrenv():
         """
         colData: Cell
         lineData = self.data.selectline(rowNo)
-        for cellData in lineData:            # 行の先頭からチェック
+        for cellData in lineData:  # 行の先頭からチェック
             data = cellData.value  # セルのデータを取得
 
-            if data == None:            #データが無い
+            if data == None:  # データが無い
                 continue
 
-            if not(type(data) is str):      # 文字列でない
+            if not (type(data) is str):  # 文字列でない
                 continue
 
-            Debug.print(cellData.value)            # Debug用
+            Debug.print(cellData.value)  # Debug用
             result = re.search(pattern, cellData.value)  # 取組名称の文字を探す
 
-            if result:                                  # 見つかったらループ終了
+            if result:  # 見つかったらループ終了
                 return cellData
 
         return None
@@ -266,27 +267,27 @@ class ExcelManForAgrenv():
             Debug.error('"取組名称"を含むセルが見つかりません')
             return False
 
-        Debug.print( "Find row="+str(obj.row) + " col="+ str(obj.column))
-        titleLine = obj.row                     # 表題の行
-        self.dataLine = titleLine + 1           # データの開始行
+        Debug.print("Find row=" + str(obj.row) + " col=" + str(obj.column))
+        titleLine = obj.row  # 表題の行
+        self.dataLine = titleLine + 1  # データの開始行
         lineData = self.data.selectline(titleLine)
 
-        self.TITLE_LINE_KEY.searchOnLine(lineData)        # 取組名称
-        self.PERSON_NAME.searchOnLine(lineData)        # 構成員名
-        self.AREA.searchOnLine(lineData)        # 取り組み面積
-        self.IMPLE_START_YEAR.searchOnLine(lineData)       # 実施開始年
-        self.IMPLE_START_MONTH.searchOnLine(lineData)       # 実施開始月
-        self.IMPLE_END_YEAR.searchOnLine(lineData)       # 実施終了年
-        self.IMPLE_END_MONTH.searchOnLine(lineData)       # 実施終了月
-        self.PRODUCE_NAME.searchOnLine(lineData)           # 作物名
+        self.TITLE_LINE_KEY.searchOnLine(lineData)  # 取組名称
+        self.PERSON_NAME.searchOnLine(lineData)  # 構成員名
+        self.AREA.searchOnLine(lineData)  # 取り組み面積
+        self.IMPLE_START_YEAR.searchOnLine(lineData)  # 実施開始年
+        self.IMPLE_START_MONTH.searchOnLine(lineData)  # 実施開始月
+        self.IMPLE_END_YEAR.searchOnLine(lineData)  # 実施終了年
+        self.IMPLE_END_MONTH.searchOnLine(lineData)  # 実施終了月
+        self.PRODUCE_NAME.searchOnLine(lineData)  # 作物名
         self.CULTIVATED_START_YEAR.searchOnLine(lineData)  # 栽培開始年
         self.CULTIVATED_START_MONTH.searchOnLine(lineData)  # 栽培開始月
         self.CULTIVATED_END_YEAR.searchOnLine(lineData)  # 栽培終了年
-        self.CULTIVATED_END_MONTH.searchOnLine( lineData)  # 栽培終了月
+        self.CULTIVATED_END_MONTH.searchOnLine(lineData)  # 栽培終了月
         Approach.setInfoLocation(
             self.TITLE_LINE_KEY,  # 取組名称
-            self.PERSON_NAME,       # 構成員名
-            self.AREA,       # 構成員名
+            self.PERSON_NAME,  # 構成員名
+            self.AREA,  # 構成員名
             self.IMPLE_START_YEAR,  # 実施開始年
             self.IMPLE_START_MONTH,  # 実施開始月
             self.IMPLE_END_YEAR,  # 実施終了年
@@ -307,14 +308,15 @@ class ExcelManForAgrenv():
         :return:
         """
         self.approachs = []
-        for lineNo in range(self.dataLine,self.data.numOfRow()):
+        for lineNo in range(self.dataLine, self.data.numOfRow()):
             approachLine = Approach.factoryApproach(self.data.selectline(lineNo))
             if approachLine is None:
                 continue
             self.approachs.append(approachLine)
             Debug.print(approachLine.print())
 
-class   Approach():
+
+class Approach():
     """
     取り組み対象を処理するクラス
     """
@@ -326,8 +328,8 @@ class   Approach():
         "冬季湛水",
     ]
     TITLE_LINE_KEY = None  # 取組名称
-    PERSON_NAME = None      # 構成員名
-    AREA = None      # 取り組み面積
+    PERSON_NAME = None  # 構成員名
+    AREA = None  # 取り組み面積
     IMPLE_START_YEAR = None  # 実施開始年
     IMPLE_START_MONTH = None  # 実施開始月
     IMPLE_END_YEAR = None  # 実施終了年
@@ -341,8 +343,8 @@ class   Approach():
     @classmethod
     def setInfoLocation(cls,
                         TITLE_LINE_KEY,  # 取組名称
-                        PERSON_NAME,      # 構成員名
-                        AREA,      # 取り組み面積
+                        PERSON_NAME,  # 構成員名
+                        AREA,  # 取り組み面積
                         IMPLE_START_YEAR,  # 実施開始年
                         IMPLE_START_MONTH,  # 実施開始月
                         IMPLE_END_YEAR,  # 実施終了年
@@ -387,16 +389,16 @@ class   Approach():
         # 取組名称の種別をチェックする
         cell = lineData.getCell(cls.TITLE_LINE_KEY.col()).value
         if not (type(cell) is str):
-            return None             # 文字列ではないので無視
+            return None  # 文字列ではないので無視
 
         for typeName in cls.APPROACH_NAMES:
             result = re.search(cell, typeName)
             if result:
                 break;
 
-        retObj = Approach(lineData,typeName )
+        retObj = Approach(lineData, typeName)
         if (result == None) or (typeName == cls.APPROACH_NAMES[0]):
-            return None             # 一致しない取組名称と、●対象外は無視
+            return None  # 一致しない取組名称と、●対象外は無視
 
         try:
             # 構成員名を得る
@@ -413,15 +415,15 @@ class   Approach():
             year = int(cell)
             cell = lineData.getCell(Approach.IMPLE_START_MONTH.col()).value
             month = int(cell)
-            start = EraProc( year, month, 1 )
+            start = EraProc(year, month, 1)
 
             # 実施終了期間を得る
             cell = lineData.getCell(Approach.IMPLE_END_YEAR.col()).value
             year = int(cell)
             cell = lineData.getCell(Approach.IMPLE_END_MONTH.col()).value
             month = int(cell)
-            end = EraProc( year, month, 1 )
-            retObj.setImple(start,end)
+            end = EraProc(year, month, 1)
+            retObj.setImple(start, end)
 
             # 栽培開始期間を得る
             cell = lineData.getCell(Approach.CULTIVATED_START_YEAR.col()).value
@@ -436,7 +438,7 @@ class   Approach():
             cell = lineData.getCell(Approach.CULTIVATED_END_MONTH.col()).value
             month = int(cell)
             end = EraProc(year, month, 1)
-            retObj.setculti(start,end)
+            retObj.setculti(start, end)
 
             name = lineData.getCell(Approach.PRODUCE_NAME.col()).value
             retObj.setProduce(name)
@@ -444,8 +446,8 @@ class   Approach():
             Debug.error("期間が不正です。無視します")
             return None
 
-        Debug.print( retObj.print() )
-        return  retObj
+        Debug.print(retObj.print())
+        return retObj
 
     def __init__(self, lineData, typeName):
         """
@@ -454,17 +456,18 @@ class   Approach():
         """
         self.apptoachType = typeName
         self.data = lineData
+
     def setPersonName(self, name):
         self.personName = name
 
     def setArea(self, area):
         self.area = area
 
-    def setImple(self, start, end ):
+    def setImple(self, start, end):
         self.impleStart = start
         self.impleEnd = end
 
-    def setculti(self, start, end ):
+    def setculti(self, start, end):
         self.cultiStart = start
         self.cultiEnd = end
 
@@ -472,9 +475,9 @@ class   Approach():
         self.produceName = name
 
     def print(self):
-        return self.personName + " (" + str(self.area) + "a)"+\
-                self.apptoachType+":" + self.produceName + " = " +  self.impleStart.print() + "～" + self.impleEnd.print() +\
-               " |  " +  self.cultiStart.print() + "～"+ self.cultiEnd.print()
+        return self.personName + " (" + str(self.area) + "a)" + \
+               self.apptoachType + ":" + self.produceName + " = " + self.impleStart.print() + "～" + self.impleEnd.print() + \
+               " |  " + self.cultiStart.print() + "～" + self.cultiEnd.print()
 
 
 ###########################
@@ -482,4 +485,4 @@ class   Approach():
 ###########################
 if __name__ == '__main__':
     print("####テストスタート#####")
-    tergetObj = ExcelManForAgrenv("実施計画書(元データ)2.xlsx")             # "sample.xlsxファイルの管理オブジェクトを作る
+    tergetObj = ExcelManForAgrenv("実施計画書(元データ)2.xlsx")  # "sample.xlsxファイルの管理オブジェクトを作る

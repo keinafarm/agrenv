@@ -30,5 +30,5 @@ class   Debug():
 
 
 if __name__ == '__main__':
-    Debug.print( "DEBUG用の出力です")
-    Debug.error( "DEBUG用の出力ですってばー")
+    Debug.print("DEBUG用の出力です")
+    Debug.error("DEBUG用の出力ですってばー")
