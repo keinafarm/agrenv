@@ -5,28 +5,215 @@ from ExcelMan import ExcelMan
 from Debug import Debug
 import re
 
-class   titleInfo():
+
+class TitleInfo():
     """
     タイトル行の情報
     """
-    pattern = None  # どのタイトルなのか検索する時のパターン
-    cellObj = None   # シート上で、パターンに一致したセルのオブジェクト
-
     def __init__(self, pattern):
         """
         コンストラクタ
         :param pattern: 検索パターン
         """
         self.pattern = pattern
+        self.cellObj = None  # シート上で、パターンに一致したセルのオブジェクト
+        self.colNum = 0
 
-    def searchOnLine(self, lineData ):
+    def searchOnLine(self, lineData):
         """
         指定した行のセルの中に特定のパターンを含む最初のセルを見つける
         :param lineNo: 検索する行番号(1オリジン)
         :return:　セルオブジェクト　無い時はNone
         """
-        for colData in lineData:            # 行の先頭からチェック
+        for colData in lineData:  # 行の先頭からチェック
             data = colData.value  # セルのデータを取得
+
+            if data == None:  # データが無い
+                continue
+
+            if not (type(data) is str):  # 文字列でない
+                continue
+
+            result = re.search(self.pattern, colData.value)  # 取組名称の文字を探す
+
+            if result:  # 見つかったらループ終了
+                self.cellObj = colData
+                Debug.print(
+                    self.pattern + " row=" + str(self.cellObj.row) + " col=" + str(self.cellObj.column))
+                self.colNum = self.cellObj.column
+                return True
+
+        self.colNum = None
+        Debug.error(self.pattern + "のタイトルが見つかりませんでした")  # Debug用
+        return False
+
+    def col(self):
+        return  self.colNum
+
+class LineData():
+    def __init__(self, lineData):
+        self.data = lineData
+
+    def getCell(self, col):
+        return self.data[col - 1]
+
+    def setCell(self, col, data):
+        self.data[col - 1] = data
+
+    def append(self, data):
+        self.data.append(data)
+
+    def __iter__(self):
+        self.itrCount = 0
+        return self
+
+    def __next__(self):
+        if self.itrCount >= len(self.data):
+            raise StopIteration()
+        self.itrCount += 1
+        return self.data[self.itrCount-1]
+
+class SheetData(ExcelMan):
+    """
+    シートのデータを管理する
+    """
+
+    def __init__(self, file, sheet):
+        self._rows = 0  # 行数
+        self._cols = 0  # 桁数
+        self._data = []  # ほ場一覧シートのデータを保持する
+        self._lineData = []  # １行分のデータ
+        self._currentRow = 0  # 現在着目している行番号（カレント行）
+
+        super().__init__(file)
+        super().openBook()
+        super().openSheetByName(sheet)  # 対象となるシートを開く
+        self._rows = super().numOfRow()
+        self._cols = super().numOfCol()
+        print(sheet + "を読み込み 行数=" + str(self._rows) + " 列数=" + str(self._cols))
+        lineData = LineData([])
+        for row in range(1, self._rows):
+            for col in range(1, self._cols):
+                cellObj = super().getCell(row, col)
+                lineData.append(cellObj)
+            self._data.append(lineData)
+            lineData =  LineData([])
+
+    def selectline(self, rowNo):
+        """
+        1行分のデータを得る
+        :param rowNo: 行番号
+        :return:
+        """
+        self._lineData = self._data[rowNo - 1]
+        self._currentRow = rowNo
+        return self._lineData
+
+    def getLine(self):
+        """
+        カレント行を得る
+        :return:
+        """
+        return self.selectline(self._currentRow)
+
+    def getCell(self, row, col):
+        return self._data[row - 1].getCell(col).value
+
+    def getCellOnCurrentLine(self, col):
+        return self._lineData.getCell(col).value
+
+    def numOfRow(self):
+        return self._rows
+
+    def numOfCol(self):
+        return self._cols
+
+
+class ExcelManForAgrenv():
+    """
+    環境直払い　実施計画書のファイルを読み込んで、申請書類のデータを作成する
+    """
+
+    TERGET_SHEET_NAME = "◎ほ場一覧（全構成員）"               # 対象となるシートの名前
+
+
+
+    #############################
+    #
+    #   実施計画書ファイルに対する集計処理
+    #
+    #############################
+
+    def __init__(self, file):
+        """
+        実施計画書ファイルを開く
+        :param file: 実施計画書のファイル名
+        """
+
+        self.data = None  # ほ場一覧シートのデータを保持する
+        self.dataLine = 0  # データ開始行
+        # タイトル情報
+        self.TITLE_LINE_KEY = TitleInfo(r"取組名称")
+        self.IMPLE_START_YEAR = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?開始年")
+        self.IMPLE_START_MONTH = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?開始月")
+        self.IMPLE_END_YEAR = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?終了年")
+        self.IMPLE_END_MONTH = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?終了月")
+        self.PRODUCE_NAME = TitleInfo(r"作物名")
+        self.CULTIVATED_START_YEAR = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始年")
+        self.CULTIVATED_START_MONTH = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始月")
+        self.CULTIVATED_END_YEAR = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始年")
+        self.CULTIVATED_END_MONTH = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?終了月")
+
+        # タイトル情報を保持する
+        titleCellList = [
+            self.TITLE_LINE_KEY,
+            self.IMPLE_START_YEAR,
+            self.IMPLE_START_MONTH,
+            self.IMPLE_END_YEAR,
+            self.IMPLE_END_MONTH,
+            self.PRODUCE_NAME,
+            self.CULTIVATED_START_YEAR,
+            self.CULTIVATED_START_MONTH,
+            self.CULTIVATED_END_YEAR,
+            self.CULTIVATED_END_MONTH
+        ]
+
+        self.data = SheetData(file, self.TERGET_SHEET_NAME)        # シートデータを読み込む
+        self.approachs = []
+
+        if not (self.approachList()):
+            Debug.error( "データの形式が思ってた通りでは無かったです　ごめんなさい")
+            raise ValueError
+
+    #############################
+    #
+    #   クラス内汎用処理
+    #
+    #############################
+
+    def searchCells(self, pattern):
+        """
+        特定のパターンを含む最初のセルを見つける
+        :param pattern:　正規表現で記載された検索パターン
+        :return:　セルオブジェクト　無い時はNone
+        """
+        for lineNo in range(1,self.data.numOfRow()):           # 最初の行からチェック
+            result = self.searchInLine(lineNo, pattern)
+            if result:
+                return result
+
+        return None
+
+    def searchInLine(self, rowNo, pattern):
+        """
+        指定した行番号のセルの中に特定のパターンを含む最初のセルを見つける
+        :param rowNo: 検索する行番号(1オリジン)
+        :return:　セルオブジェクト　無い時はNone
+        """
+        colData: Cell
+        lineData = self.data.selectline(rowNo)
+        for cellData in lineData:            # 行の先頭からチェック
+            data = cellData.value  # セルのデータを取得
 
             if data == None:            #データが無い
                 continue
@@ -34,83 +221,20 @@ class   titleInfo():
             if not(type(data) is str):      # 文字列でない
                 continue
 
-            result = re.search(self.pattern, colData.value)  # 取組名称の文字を探す
+            Debug.print(cellData.value)            # Debug用
+            result = re.search(pattern, cellData.value)  # 取組名称の文字を探す
 
             if result:                                  # 見つかったらループ終了
-                self.cellObj = colData
-                Debug.print(self.pattern + " row=" + str(self.cellObj.row) + " col="+ str( self.cellObj.column) )
-                return True
+                return cellData
 
-        self.colNum = None
-        Debug.error( self.pattern +  "のタイトルが見つかりませんでした")     # Debug用
-        return False
+        return None
 
-
-class ExcelManForAgrenv(ExcelMan):
-    """
-    環境直払い　実施計画書のファイルを読み込んで、申請書類のデータを作成する
-    """
-
-    rows = 0            # 行数
-    cols = 0            # 桁数
-    data = []           # ほ場一覧シートのデータを保持する
-
-    # タイトル情報
-    TITLE_LINE_KEY = titleInfo(r"取組名称")
-    IMPLE_START_YEAR = titleInfo(r"実施(.|\n)*?時期(.|\n)*?開始年")
-    IMPLE_START_MONTH = titleInfo(r"実施(.|\n)*?時期(.|\n)*?開始月")
-    IMPLE_END_YEAR = titleInfo(r"実施(.|\n)*?時期(.|\n)*?終了年")
-    IMPLE_END_MONTH = titleInfo(r"実施(.|\n)*?時期(.|\n)*?終了月")
-    PRODUCE_NAME = titleInfo(r"作物名")
-    CULTIVATED_START_YEAR = titleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始年")
-    CULTIVATED_START_MONTH = titleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始月")
-    CULTIVATED_END_YEAR = titleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始年")
-    CULTIVATED_END_MONTH = titleInfo(r"栽培(.|\n)*?時期(.|\n)*?終了月")
-
-    # タイトル情報を保持する
-    titleCellList = [
-        TITLE_LINE_KEY,
-        IMPLE_START_YEAR,
-        IMPLE_START_MONTH,
-        IMPLE_END_YEAR,
-        IMPLE_END_MONTH,
-        PRODUCE_NAME,
-        CULTIVATED_START_YEAR,
-        CULTIVATED_START_MONTH,
-        CULTIVATED_END_YEAR,
-        CULTIVATED_END_MONTH
-    ]
-
-    def __init__(self, file):
-        """
-        実施計画書ファイルを開く
-        :param file: 実施計画書のファイル名
-        """
-        super().__init__(file)
-        super().openBook()
-        self.readAll()
-        if not (self.approachList()):
-            Debug.error( "データの形式が思ってた通りでは無かったです　ごめんなさい")
-            raise ValueError
-
-    def readAll(self):
-        """
-        実施計画書ファイルの、"◎ほ場一覧（全構成員）"シートを全部読み込む
-        :return:
-        """
-        super().openSheetByName("◎ほ場一覧（全構成員）")
-        self.rows = super().numOfRow()
-        self.cols = super().numOfCol()
-
-        print( "◎ほ場一覧（全構成員）を読み込み 行数="+str(self.rows) + " 列数="+str(self.cols))
-        self.data = []
-        for row in range(1,self.rows):
-            line = []
-            for col in range(1,self.cols):
-                cellObj = super().getCell( row,col)
-                line.append(cellObj)
-            self.data.append(line)
-
+    #############################
+    #
+    #   取り組み一覧関係
+    #   各取り組みと作物の実施時期と栽培時期を抽出する
+    #
+    #############################
     def approachList(self):
         """
         取り組み一覧を作成する
@@ -131,7 +255,6 @@ class ExcelManForAgrenv(ExcelMan):
                 False　作成失敗
         """
 
-
         print("タイトル行の検索開始")
         obj = self.searchCells(self.TITLE_LINE_KEY.pattern)
         if obj is None:
@@ -139,57 +262,124 @@ class ExcelManForAgrenv(ExcelMan):
             return False
 
         Debug.print( "Find row="+str(obj.row) + " col="+ str(obj.column))
-        titleLine = obj.row
+        titleLine = obj.row                     # 表題の行
+        self.dataLine = titleLine + 1           # データの開始行
+        lineData = self.data.selectline(titleLine)
 
-        self.TITLE_LINE_KEY.searchOnLine(self.data[titleLine-1])        # 取組名称
-        self.IMPLE_START_YEAR.searchOnLine(self.data[titleLine-1])       # 実施開始年
-        self.IMPLE_START_MONTH.searchOnLine(self.data[titleLine-1])       # 実施開始月
-        self.IMPLE_END_YEAR.searchOnLine(self.data[titleLine-1])       # 実施終了年
-        self.IMPLE_END_MONTH.searchOnLine(self.data[titleLine-1])       # 実施終了月
-        self.PRODUCE_NAME.searchOnLine(self.data[titleLine-1])           # 作物名
-        self.CULTIVATED_START_YEAR.searchOnLine(self.data[titleLine-1])  # 栽培開始年
-        self.CULTIVATED_START_MONTH.searchOnLine(self.data[titleLine-1])  # 栽培開始月
-        self.CULTIVATED_END_YEAR.searchOnLine(self.data[titleLine-1])  # 栽培終了年
-        self.CULTIVATED_END_MONTH.searchOnLine(self.data[titleLine-1])  # 栽培終了月
+        self.TITLE_LINE_KEY.searchOnLine(lineData)        # 取組名称
+        self.IMPLE_START_YEAR.searchOnLine(lineData)       # 実施開始年
+        self.IMPLE_START_MONTH.searchOnLine(lineData)       # 実施開始月
+        self.IMPLE_END_YEAR.searchOnLine(lineData)       # 実施終了年
+        self.IMPLE_END_MONTH.searchOnLine(lineData)       # 実施終了月
+        self.PRODUCE_NAME.searchOnLine(lineData)           # 作物名
+        self.CULTIVATED_START_YEAR.searchOnLine(lineData)  # 栽培開始年
+        self.CULTIVATED_START_MONTH.searchOnLine(lineData)  # 栽培開始月
+        self.CULTIVATED_END_YEAR.searchOnLine(lineData)  # 栽培終了年
+        self.CULTIVATED_END_MONTH.searchOnLine( lineData)  # 栽培終了月
+        Approach.setInfoLocation(
+            self.TITLE_LINE_KEY,  # 取組名称
+            self.IMPLE_START_YEAR,  # 実施開始年
+            self.IMPLE_START_MONTH,  # 実施開始月
+            self.IMPLE_END_YEAR,  # 実施終了年
+            self.IMPLE_END_MONTH,  # 実施終了月
+            self.PRODUCE_NAME,  # 作物名
+            self.CULTIVATED_START_YEAR,  # 栽培開始年
+            self.CULTIVATED_START_MONTH,  # 栽培開始月
+            self.CULTIVATED_END_YEAR,  # 栽培終了年
+            self.CULTIVATED_END_MONTH  # 栽培終了月
+        )
+
+        self.pickupApproachList()
         return True
 
-    def searchCells(self, pattern):
+    def pickupApproachList(self):
         """
-        特定のパターンを含む最初のセルを見つける
-        :param pattern:　正規表現で記載された検索パターン
-        :return:　セルオブジェクト　無い時はNone
+        取り組み一覧の対象となるデータを抽出する
+        :return:
         """
-        for lineNo in range(1,self.numOfRow()):           # 最初の行からチェック
-            result = self.searchInLine(lineNo, pattern)
+        self.approachs = []
+        for lineNo in range(self.dataLine,self.data.numOfRow()):
+            approachLine = Approach.factoryApproach(self.data.selectline(lineNo))
+            if approachLine is None:
+                continue
+            self.approachs.append(approachLine)
+            Debug.print(approachLine.print())
+
+class   Approach():
+    """
+    取り組み対象を処理するクラス
+    """
+    APPROACH_NAMES = [
+        "●対象外",
+        "カバークロップ",
+        "堆肥施用",
+        "有機農業",
+        "冬季湛水",
+    ]
+    TITLE_LINE_KEY = None  # 取組名称
+    IMPLE_START_YEAR = None  # 実施開始年
+    IMPLE_START_MONTH = None  # 実施開始月
+    IMPLE_END_YEAR = None  # 実施終了年
+    IMPLE_END_MONTH = None  # 実施終了月
+    PRODUCE_NAME = None  # 作物名
+    CULTIVATED_START_YEAR = None  # 栽培開始年
+    CULTIVATED_START_MONTH = None  # 栽培開始月
+    CULTIVATED_END_YEAR = None  # 栽培終了年
+    CULTIVATED_END_MONTH = None  # 栽培終了月
+
+    @classmethod
+    def setInfoLocation(cls,
+                        TITLE_LINE_KEY,  # 取組名称
+                        IMPLE_START_YEAR,  # 実施開始年
+                        IMPLE_START_MONTH,  # 実施開始月
+                        IMPLE_END_YEAR,  # 実施終了年
+                        IMPLE_END_MONTH,  # 実施終了月
+                        PRODUCE_NAME,  # 作物名
+                        CULTIVATED_START_YEAR,  # 栽培開始年
+                        CULTIVATED_START_MONTH,  # 栽培開始月
+                        CULTIVATED_END_YEAR,  # 栽培終了年
+                        CULTIVATED_END_MONTH  # 栽培終了月
+                        ):
+        cls.TITLE_LINE_KEY = TITLE_LINE_KEY  # 取組名称
+        cls.IMPLE_START_YEAR = IMPLE_START_YEAR  # 実施開始年
+        cls.IMPLE_START_MONTH = IMPLE_START_MONTH  # 実施開始月
+        cls.IMPLE_END_YEAR = IMPLE_END_YEAR  # 実施終了年
+        cls.IMPLE_END_MONTH = IMPLE_END_MONTH  # 実施終了月
+        cls.PRODUCE_NAME = PRODUCE_NAME  # 作物名
+        cls.CULTIVATED_START_YEAR = CULTIVATED_START_YEAR  # 栽培開始年
+        cls.CULTIVATED_START_MONTH = CULTIVATED_START_MONTH  # 栽培開始月
+        cls.CULTIVATED_END_YEAR = CULTIVATED_END_YEAR  # 栽培終了年
+        cls.CULTIVATED_END_MONTH = CULTIVATED_END_MONTH  # 栽培終了月
+
+    @classmethod
+    def factoryApproach(cls, lineData):
+        # 取組名称の種別をチェックする
+        cell = lineData.getCell(cls.TITLE_LINE_KEY.col()).value
+        if not (type(cell) is str):
+            return None             # 文字列ではないので無視
+
+        for typeName in cls.APPROACH_NAMES:
+            result = re.search(cell, typeName)
             if result:
-                return result
+                break;
 
-        return None
+        if (result == None) or (typeName == cls.APPROACH_NAMES[0]):
+            return None             # 一致しない取組名称と、●対象外は無視
 
-    def searchInLine(self, lineNo, pattern):
+        retObj = Approach(lineData,typeName )
+        return  retObj
+
+    def __init__(self, lineData, typeName):
         """
-        指定した行番号のセルの中に特定のパターンを含む最初のセルを見つける
-        :param lineNo: 検索する行番号(1オリジン)
-        :return:　セルオブジェクト　無い時はNone
+        コンストラクタ
+        :param lineData: １行分のデータ
         """
-        colData: Cell
-        lineData = self.data[lineNo-1]
-        for colData in lineData:            # 行の先頭からチェック
-            data = colData.value  # セルのデータを取得
+        self.apptoachType = typeName
+        self.data = lineData
 
-            if data == None:            #データが無い
-                continue
+    def print(self):
+        return self.apptoachType+":"+self.data.getCell(3).value
 
-            if not(type(data) is str):      # 文字列でない
-                continue
-
-            Debug.print(colData.value)            # Debug用
-            result = re.search(pattern, colData.value)  # 取組名称の文字を探す
-
-            if result:                                  # 見つかったらループ終了
-                return colData
-
-        return None
 
 ###########################
 #   テスト
@@ -197,5 +387,3 @@ class ExcelManForAgrenv(ExcelMan):
 if __name__ == '__main__':
     print("####テストスタート#####")
     tergetObj = ExcelManForAgrenv("実施計画書(元データ)2.xlsx")             # "sample.xlsxファイルの管理オブジェクトを作る
-    tergetObj.readAll()
-    tergetObj.approachList()
