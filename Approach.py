@@ -20,7 +20,7 @@ class Approach():
         "有機農業",
         "冬季湛水",
     ]
-    TITLE_LINE_KEY = None  # 取組名称
+    APPROACH_NAME = None  # 取組名称
     PERSON_NAME = None  # 構成員名
     AREA = None  # 取り組み面積
     IMPLE_START_YEAR = None  # 実施開始年
@@ -35,7 +35,7 @@ class Approach():
 
     @classmethod
     def setInfoLocation(cls,
-                        TITLE_LINE_KEY,  # 取組名称
+                        APPROACH_NAME,  # 取組名称
                         PERSON_NAME,  # 構成員名
                         AREA,  # 取り組み面積
                         IMPLE_START_YEAR,  # 実施開始年
@@ -43,6 +43,7 @@ class Approach():
                         IMPLE_END_YEAR,  # 実施終了年
                         IMPLE_END_MONTH,  # 実施終了月
                         PRODUCE_NAME,  # 作物名
+                        PRODUCE_TYPE,   # 作物区分
                         CULTIVATED_START_YEAR,  # 栽培開始年
                         CULTIVATED_START_MONTH,  # 栽培開始月
                         CULTIVATED_END_YEAR,  # 栽培終了年
@@ -50,7 +51,7 @@ class Approach():
                         ):
         """
         各情報の位置を決定するための情報を受取る
-        :param TITLE_LINE_KEY:
+        :param APPROACH_NAME:
         :param PERSON_NAME:
         :param AREA:
         :param IMPLE_START_YEAR:
@@ -64,7 +65,7 @@ class Approach():
         :param CULTIVATED_END_MONTH:
         :return:
         """
-        cls.TITLE_LINE_KEY = TITLE_LINE_KEY  # 取組名称
+        cls.APPROACH_NAME = APPROACH_NAME  # 取組名称
         cls.PERSON_NAME = PERSON_NAME  # 構成員名
         cls.AREA = AREA  # 取り組み面積
         cls.IMPLE_START_YEAR = IMPLE_START_YEAR  # 実施開始年
@@ -72,6 +73,7 @@ class Approach():
         cls.IMPLE_END_YEAR = IMPLE_END_YEAR  # 実施終了年
         cls.IMPLE_END_MONTH = IMPLE_END_MONTH  # 実施終了月
         cls.PRODUCE_NAME = PRODUCE_NAME  # 作物名
+        cls.PRODUCE_TYPE = PRODUCE_TYPE  # 作物区分
         cls.CULTIVATED_START_YEAR = CULTIVATED_START_YEAR  # 栽培開始年
         cls.CULTIVATED_START_MONTH = CULTIVATED_START_MONTH  # 栽培開始月
         cls.CULTIVATED_END_YEAR = CULTIVATED_END_YEAR  # 栽培終了年
@@ -80,7 +82,7 @@ class Approach():
     @classmethod
     def factoryApproach(cls, lineData):
         # 取組名称の種別をチェックする
-        cell = lineData.getCell(cls.TITLE_LINE_KEY.col()).value
+        cell = lineData.getCell(cls.APPROACH_NAME.col()).value
         if not (type(cell) is str):
             return None  # 文字列ではないので無視
 
@@ -133,8 +135,14 @@ class Approach():
             end = EraProc(year, month, 1)
             retObj.setculti(start, end)
 
+            #　作物名を得る
             name = lineData.getCell(Approach.PRODUCE_NAME.col()).value
             retObj.setProduce(name)
+
+            #　作物区分を得る
+            name = lineData.getCell(Approach.PRODUCE_TYPE.col()).value
+            retObj.setProduceType(name)
+
         except:
             Debug.error("書式が不正です。無視します" )
             return None
@@ -145,7 +153,7 @@ class Approach():
         コンストラクタ
         :param lineData: １行分のデータ
         """
-        self.apptoachType = typeName
+        self.approachType = typeName
         self.data = lineData
 
     def setPersonName(self, name):
@@ -165,8 +173,32 @@ class Approach():
     def setProduce(self, name):
         self.produceName = name
 
+    def setProduceType(self, name):
+        self.produceType = name
+
+    # ソート用
+    def getProduce(self):
+        return  self.produceName
+
+    def getApproachAndProduce(self):
+        """
+        取り組み毎に、作物名,でソートする
+        :return:
+        """
+        return self.approachType + "$$$$$$$" + self.produceName
+
+    def getPersonAndApproach(self):
+        """
+        構成員毎に、取組名称、作物区分でソートする
+        :return:
+        """
+        return self.personName + "$$$$$$$" + self.approachType + "$$$$$$$" + self.produceType
+
+    def getApproachType(self):
+        return  self.approachType
+
     def print(self):
         return self.personName + " (" + str(self.area) + "a)" + \
-               self.apptoachType + ":" + self.produceName + " = " + self.impleStart.print() + "～" + self.impleEnd.print() + \
+               self.approachType + ":" + self.produceName + "(" + self.produceType + ") = " + self.impleStart.print() + "～" + self.impleEnd.print() + \
                " |  " + self.cultiStart.print() + "～" + self.cultiEnd.print()
 

@@ -7,6 +7,7 @@ from TitleInfo import TitleInfo
 from SheetData import SheetData
 from Approach import Approach
 import re
+import copy
 
 class AgrenvModel():
     """
@@ -38,6 +39,7 @@ class AgrenvModel():
         self.IMPLE_END_YEAR = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?終了年")
         self.IMPLE_END_MONTH = TitleInfo(r"実施(.|\n)*?時期(.|\n)*?終了月")
         self.PRODUCE_NAME = TitleInfo(r"作物名")
+        self.PRODUCE_TYPE = TitleInfo(r"作物区分")
         self.CULTIVATED_START_YEAR = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始年")
         self.CULTIVATED_START_MONTH = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始月")
         self.CULTIVATED_END_YEAR = TitleInfo(r"栽培(.|\n)*?時期(.|\n)*?開始年")
@@ -53,6 +55,7 @@ class AgrenvModel():
             self.IMPLE_END_YEAR,
             self.IMPLE_END_MONTH,
             self.PRODUCE_NAME,
+            self.PRODUCE_TYPE,
             self.CULTIVATED_START_YEAR,
             self.CULTIVATED_START_MONTH,
             self.CULTIVATED_END_YEAR,
@@ -65,6 +68,9 @@ class AgrenvModel():
         if not (self.approachList()):
             Debug.error("データの形式が思ってた通りでは無かったです　ごめんなさい")
             raise ValueError
+
+        self.periodList = []            # 実施期間、栽培期間のリスト
+        self.areaList = []              # 構成員別取組面積のリスト
 
     #############################
     #
@@ -112,8 +118,8 @@ class AgrenvModel():
 
     #############################
     #
-    #   取り組み一覧関係
-    #   各取り組みと作物の実施時期と栽培時期を抽出する
+    #   Excelのデータを読み込み、今回の処理に必要な情報をピックアップして
+    #   内部形式に変換して、self.approachsのリストに保持する
     #
     #############################
     def approachList(self):
@@ -155,6 +161,7 @@ class AgrenvModel():
         self.IMPLE_END_YEAR.searchOnLine(lineData)  # 実施終了年
         self.IMPLE_END_MONTH.searchOnLine(lineData)  # 実施終了月
         self.PRODUCE_NAME.searchOnLine(lineData)  # 作物名
+        self.PRODUCE_TYPE.searchOnLine(lineData)  # 作物区分
         self.CULTIVATED_START_YEAR.searchOnLine(lineData)  # 栽培開始年
         self.CULTIVATED_START_MONTH.searchOnLine(lineData)  # 栽培開始月
         self.CULTIVATED_END_YEAR.searchOnLine(lineData)  # 栽培終了年
@@ -168,6 +175,7 @@ class AgrenvModel():
             self.IMPLE_END_YEAR,  # 実施終了年
             self.IMPLE_END_MONTH,  # 実施終了月
             self.PRODUCE_NAME,  # 作物名
+            self.PRODUCE_TYPE,  # 作物区分
             self.CULTIVATED_START_YEAR,  # 栽培開始年
             self.CULTIVATED_START_MONTH,  # 栽培開始月
             self.CULTIVATED_END_YEAR,  # 栽培終了年
@@ -175,6 +183,9 @@ class AgrenvModel():
         )
 
         self.pickupApproachList()
+        self.approachProc()
+        self.areaListProc()
+        self.sum()
         return True
 
     def pickupApproachList(self):
@@ -190,6 +201,101 @@ class AgrenvModel():
             self.approachs.append(approachLine)
             Debug.print(approachLine.print())
 
+    #############################
+    #
+    #   取り組み一覧関係
+    #   取り組み名称毎に、作物に対する、実施期間と栽培期間のリストを作る
+    #
+    #############################
+    def approachProc(self):
+        """
+        取り組み一覧関係
+        取り組み名称毎に、作物に対する、実施期間と栽培期間のリストを作る
+        :return:
+        """
+        duplicateList = copy.copy(self.approachs)         # リストの内容を変更するので、複製を作成する
+        duplicateList.sort(key=Approach.getApproachAndProduce)
+        Debug.print("=============ソート完了=============")
+        for app in duplicateList:
+            Debug.print( app.print() )
+
+        compareName = None              # 比較する名前
+        self.periodList = []               # 重複を取り除いたリスト
+        for app in duplicateList:
+            if app.getApproachAndProduce() == compareName:
+                continue
+            self.periodList.append(app)
+            compareName = app.getApproachAndProduce()
+
+        Debug.print("=============重複削除完了=============")
+        for app in self.periodList:
+            Debug.print( app.print() )
+
+    #############################
+    #
+    #   構成員別取り組み面積
+    #
+    #############################
+    def areaListProc(self):
+        """
+        構成員別取り組み面積
+        :return:
+        """
+        duplicateList = copy.copy(self.approachs)         # リストの内容を変更するので、複製を作成する
+        duplicateList.sort(key=Approach.getPersonAndApproach)
+        Debug.print("=============ソート完了=============")
+        for app in duplicateList:
+            Debug.print( app.print() )
+
+        compareName = None              # 比較する名前
+        self.areaList = []               # 重複を取り除いたリスト
+        for app in duplicateList:
+            if app.getPersonAndApproach() == compareName:
+                areaSum["area"] += app.area
+                continue
+            areaSum = {}
+            areaSum["approach"] = app.approachType
+            areaSum["area"] = app.area
+
+            self.areaList.append(areaSum)
+            compareName = app.getPersonAndApproach()
+
+        Debug.print("=============重複削除完了=============")
+        for app in self.areaList:
+           print( app  )
+
+    #############################
+    #
+    #   集計
+    #
+    #############################
+    def sum(self):
+        """
+        取組毎の面積を集計する
+        :return:
+        """
+        duplicateList = copy.copy(self.approachs)         # リストの内容を変更するので、複製を作成する
+        duplicateList.sort(key=Approach.getApproachType)
+        Debug.print("=============ソート完了=============")
+        for app in duplicateList:
+            Debug.print( app.print() )
+
+        compareName = None              # 比較する名前
+        self.sumList = []               # 重複を取り除いたリスト
+        for app in duplicateList:
+            if app.getApproachType() == compareName:
+                areaSum["area"] += app.area
+                continue
+            areaSum = {}
+            areaSum["approach"] = app.approachType
+            areaSum["area"] = app.area
+
+            self.sumList.append(areaSum)
+            compareName = app.getApproachType()
+
+        Debug.print("=============重複削除完了=============")
+        for app in self.sumList:
+           print( app  )
 
 ###########################
 #   テスト
