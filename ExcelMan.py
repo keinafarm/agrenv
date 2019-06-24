@@ -116,7 +116,7 @@ class   ExcelMan:
     @classmethod
     def A1toR1C1( cls, a1Str ):
         """
-        A1形式のセル指定をR1C1形式に返還する
+        A1形式のセル指定をR1C1形式に変換する
 
         :param a1Str:A1形式のセル指定
         :return:[r, c] r=行番号,c列番号

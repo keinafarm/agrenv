@@ -5,9 +5,11 @@ from Debug import Debug
 
 from TitleInfo import TitleInfo
 from SheetData import SheetData
+from BookData import BookData
 from Approach import Approach
 import re
 import copy
+import math
 
 class AgrenvModel():
     """
@@ -64,13 +66,13 @@ class AgrenvModel():
 
         self.data = SheetData(file, self.TERGET_SHEET_NAME)  # シートデータを読み込む
         self.approachs = []
+        self.periodList = []            # 実施期間、栽培期間のリスト
+        self.areaList = []              # 構成員別取組面積のリスト
 
         if not (self.approachList()):
             Debug.error("データの形式が思ってた通りでは無かったです　ごめんなさい")
             raise ValueError
 
-        self.periodList = []            # 実施期間、栽培期間のリスト
-        self.areaList = []              # 構成員別取組面積のリスト
 
     #############################
     #
@@ -228,8 +230,9 @@ class AgrenvModel():
             compareName = app.getApproachAndProduce()
 
         Debug.print("=============重複削除完了=============")
+        print("********** 取り組み一覧*************")
         for app in self.periodList:
-            Debug.print( app.print() )
+            print( app.print() )
 
     #############################
     #
@@ -249,24 +252,28 @@ class AgrenvModel():
 
         compareName = None              # 比較する名前
         self.areaList = []               # 重複を取り除いたリスト
+        areaSum = {}
         for app in duplicateList:
             if app.getPersonAndApproach() == compareName:
                 areaSum["area"] += app.area
                 continue
             areaSum = {}
+            areaSum["personName"] = app.personName
             areaSum["approach"] = app.approachType
+            areaSum["produceType"] = app.produceType
             areaSum["area"] = app.area
 
             self.areaList.append(areaSum)
             compareName = app.getPersonAndApproach()
 
         Debug.print("=============重複削除完了=============")
+        print("**********構成員別取り組み面積*************")
         for app in self.areaList:
-           print( app  )
+           print( app )
 
     #############################
     #
-    #   集計
+    #   交付申請書用　取組毎の面積を集計
     #
     #############################
     def sum(self):
@@ -282,6 +289,7 @@ class AgrenvModel():
 
         compareName = None              # 比較する名前
         self.sumList = []               # 重複を取り除いたリスト
+        areaSum = {}
         for app in duplicateList:
             if app.getApproachType() == compareName:
                 areaSum["area"] += app.area
@@ -294,8 +302,97 @@ class AgrenvModel():
             compareName = app.getApproachType()
 
         Debug.print("=============重複削除完了=============")
+        print("**********取組毎の面積*************")
         for app in self.sumList:
-           print( app  )
+           print( app )
+
+    #############################
+    #
+    #   出力
+    #
+    #############################
+    SUM_SHEET_NAME = "◎集計(実施計画書から）"
+    INITIATIVES_SHEET_NAME = "◎取り組み一覧（実施計画書から)"
+
+    def output(self, applicationFile, planFile):
+        """
+        交付申請書と実施計画書ファイルに出力する
+        :param applicationFile: 交付申請書ファイル名
+        :param planFile: 事業計画書ファイル名
+        :return:
+        """
+        try:
+            self.appliBook = BookData(applicationFile)
+            self.planBook = BookData(planFile)
+
+#            self.appliInitiativesSheet = self.appliBook.tergetSheet(self.INITIATIVES_SHEET_NAME)  # 申請書：取組
+#            self.planInitiativesSheet = self.planBook.tergetSheet(self.INITIATIVES_SHEET_NAME)  # 事業計画書：集計シート
+
+        except OSError as err:
+            print("OS error: {0}".format(err))
+
+        self.sumOut( self.appliBook)
+        self.sumOut( self.planBook)
+        self.appInitiativesOut( self.appliBook)
+
+    def sumOut(self, book):
+        """
+        集計シートに出力する
+        :param book: 出力するブックオブジェクト
+        :return:
+        """
+        ### 定形パターンを記載する
+        fixedPattern = [
+            ["", "", "", "補助金単価", "1取り組み面積", "", "1取り組み金額", ""],
+            ["", "カバークロップ", "ヒエの種子", 7000, 0, "=sum(E2)", "=D2*F2/10", "=D2*F2/10"],
+            ["", "カバークロップ", "ヒエ以外", 8000, 0, "=sum(E3)", "=D3*F3/10", "=D3*F3/10"],
+            ["", "堆肥施用", "", 4400, 0, "=sum(E4)", "=D4*F4/10", "=D4*F4/10"],
+            ["", "有機農業", "", 8000, 0, "=sum(E5)", "=D5*F5/10", "=D5*F5/10"],
+            ["", "冬期湛水", "1", 8000, 0, "=sum(E6)", "=D6*F6/10", "=D6*F6/10"],
+            ["", "冬期湛水", "2", 7000, 0, "=sum(E7)", "=D7*F7/10", "=D7*F7/10"],
+            ["", "冬期湛水", "3", 5000, 0, "=sum(E8)", "=D8*F8/10", "=D8*F8/10"],
+            ["", "冬期湛水", "4", 4000, 0, "=sum(E9)", "=D9*F9/10", "=D9*F9/10"],
+            ["", "インセクタリープランツ", "", 8000, 0, "=sum(E10)", "=D10*F10/10", "=D10*F10/10"],
+            ["", "", "", "", "=sum(E2:E10)", "=sum(F2:F10)", "=sum(G2:G10)", "=sum(H2:H10)"],
+        ]
+        book.openSheetByName(self.SUM_SHEET_NAME)  # 集計シート
+        for row in range(1,12):
+            for col in range(1,9):
+                book.setCell(row, col, fixedPattern[row-1][col-1])
+
+        for item in self.sumList:
+            if item["approach"] == "カバークロップ":
+                book.setCell(3, 5,math.floor(item["area"]))
+            elif item["approach"] == "堆肥施用":
+                book.setCell(4, 5,math.floor(item["area"]))
+            elif item["approach"] == "有機農業":
+                book.setCell(5, 5,math.floor(item["area"]))
+            elif item["approach"] == "冬期湛水":
+                book.setCell(7, 5,math.floor(item["area"]))
+
+        book.saveBook()
+
+    def appInitiativesOut(self, book):
+        """
+        申請書：取り組み一覧出力
+        :param book:出力するブックオブジェクト
+        :return:
+        """
+        book.openSheetByName(self.INITIATIVES_SHEET_NAME)  # 取組一覧シート
+        # クリア
+        for row in range(1,12):
+            for col in range(1,5):
+                book.setCell(row, col, "")
+
+        #　取り組み一覧出力をセルに格納する
+        for row in range(1,len(self.areaList)+1):
+            book.setCell(row, 1, self.areaList[row-1]["personName"])
+            book.setCell(row, 2, self.areaList[row-1]["approach"])
+            book.setCell(row, 3, self.areaList[row-1]["produceType"])
+            book.setCell(row, 4, self.areaList[row-1]["area"])
+
+        book.saveBook()
+
 
 ###########################
 #   テスト
@@ -303,3 +400,6 @@ class AgrenvModel():
 if __name__ == '__main__':
     print("####テストスタート#####")
     tergetObj = AgrenvModel("実施計画書(元データ)2.xlsx")  # "sample.xlsxファイルの管理オブジェクトを作る
+
+    tergetObj.output("testA.xlsx", "testP.xlsx")
+
