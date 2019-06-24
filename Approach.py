@@ -18,7 +18,7 @@ class Approach():
         "カバークロップ",
         "堆肥施用",
         "有機農業",
-        "冬季湛水",
+        "冬期湛水",
     ]
     APPROACH_NAME = None  # 取組名称
     PERSON_NAME = None  # 構成員名

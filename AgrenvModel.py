@@ -423,7 +423,7 @@ class AgrenvModel():
 ###########################
 if __name__ == '__main__':
     print("####テストスタート#####")
-    tergetObj = AgrenvModel("実施計画書(元データ)2.xlsx")  # "sample.xlsxファイルの管理オブジェクトを作る
+    tergetObj = AgrenvModel("実施計画書(元データ).xlsx")  # "sample.xlsxファイルの管理オブジェクトを作る
 
-    tergetObj.output("testA.xlsx", "testP.xlsx")
+    tergetObj.output("交付申請書（添付資料）.xlsx","事業計画書.xlsx")
 

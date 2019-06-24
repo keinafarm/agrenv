@@ -1,0 +1,1 @@
+pyinstaller AgrenvModel.py --onefile
