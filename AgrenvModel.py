@@ -334,6 +334,7 @@ class AgrenvModel():
         self.sumOut( self.appliBook)
         self.sumOut( self.planBook)
         self.appInitiativesOut( self.appliBook)
+        self.planpInitiativesOut( self.planBook)
 
     def sumOut(self, book):
         """
@@ -393,6 +394,29 @@ class AgrenvModel():
 
         book.saveBook()
 
+    def planpInitiativesOut(self, book):
+        """
+        事業計画書:取り組み一覧
+        :param book: 事業計画書ファイルオブジェクト
+        :return:
+        """
+        book.openSheetByName(self.INITIATIVES_SHEET_NAME)  # 取組一覧シート
+        # クリア
+        for row in range(1,20):
+            for col in range(1,5):
+                book.setCell(row, col, "")
+
+        row = 1
+        for item in self.periodList:
+            book.setCell(row, 1, item.produceName)
+            impleString = (item.impleStart.month()) + "月～" +   (item.impleEnd.month()) + "月"
+            book.setCell(row, 2, impleString)
+            book.setCell(row, 3, item.produceName)
+            cultiString = (item.cultiStart.month()) + "月～" +   (item.cultiEnd.month()) + "月"
+            book.setCell(row, 4, cultiString)
+            row += 1
+
+        book.saveBook()
 
 ###########################
 #   テスト

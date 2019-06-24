@@ -46,6 +46,8 @@ class   EraProc():
     def print(self):
         return   str(self.year()) + "/" + str(self._month) + "/" + str(self._day)
 
+    def month(self):
+        return  str(self._month)
 
 if __name__ == '__main__':
     date301201 = EraProc(30,12,1)
