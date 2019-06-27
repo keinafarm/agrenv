@@ -18,7 +18,7 @@ class   MainView():
 
         frame1 = tk.Frame(self.mainFrame, height=20)
         label1 = tk.Label(frame1,
-                           text='\n環境保全型農業直接支払交付金 支援ツール\n',
+                           text='\n環境保全型農業直接支払交付金 支援ツール Ver1.0.0\n',
                            font=("Yu Gothic UI", 18, "bold"))
         label1.pack(fill = tk.X, side="top")
         frame1.pack(side="top")
@@ -69,7 +69,7 @@ class   MainView():
 
         self.mainFrame.pack(expand = 0, fill = tk.X)
 
-    def setDefault(self, impleFile, planFile, appliFile ):
+    def setDefault(self, impleFile, appliFile, planFile  ):
         """
         入力のデフォルト値をセット
         :param impleFile: 実施計画書ファイル名

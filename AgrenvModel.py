@@ -381,9 +381,10 @@ class AgrenvModel():
         :param book:出力するブックオブジェクト
         :return:
         """
+
         book.openSheetByName(self.INITIATIVES_SHEET_NAME)  # 取組一覧シート
         # クリア
-        for row in range(1,12):
+        for row in range(1,30):
             for col in range(1,5):
                 book.setCell(row, col, "")
 
@@ -404,7 +405,7 @@ class AgrenvModel():
         """
         book.openSheetByName(self.INITIATIVES_SHEET_NAME)  # 取組一覧シート
         # クリア
-        for row in range(1,20):
+        for row in range(1,30):
             for col in range(1,5):
                 book.setCell(row, col, "")
 
