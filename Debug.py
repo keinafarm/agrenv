@@ -6,6 +6,7 @@ class   Debug():
     """
     デバッグ用のクラス
     """
+    view = None
     @classmethod
     def print(cls, message ):
         """
@@ -15,7 +16,11 @@ class   Debug():
         """
         frame = sys._getframe(1)
 
-        print( frame.f_code.co_filename + ":" + str(frame.f_lineno) + " " + message )
+        text = frame.f_code.co_filename + ":" + str(frame.f_lineno) + " " + str(message) + '\n'
+        if Debug.view :
+            Debug.view.print(text)
+        else:
+            print( text)
 
     @classmethod
     def error(cls, message):
@@ -25,9 +30,15 @@ class   Debug():
         :return:
         """
         frame = sys._getframe(1)
+        text = "!!!"+frame.f_code.co_filename + ":" + str(frame.f_lineno) + " " + str(message) + '\n'
+        if Debug.view :
+            Debug.view.print(text)
+        else:
+            print( text)
 
-        print( "!!!"+frame.f_code.co_filename + ":" + str(frame.f_lineno) + " " + message)
-
+    @classmethod
+    def setView(cls, view):
+        Debug.view = view
 
 if __name__ == '__main__':
     Debug.print("DEBUG用の出力です")

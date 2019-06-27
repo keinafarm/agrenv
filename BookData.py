@@ -29,5 +29,5 @@ class BookData(ExcelMan):
         try:
             super().openSheetByName(sheetName)  # 対象となるシートを開く
         except:
-            print(sheetName+"シートが開けません")
+            Debug.print(sheetName+"シートが開けません")
             raise

@@ -29,6 +29,7 @@ class AgrenvModel():
         実施計画書ファイルを開く
         :param file: 実施計画書のファイル名
         """
+        Debug.print("解析開始")
 
         self.data = None  # ほ場一覧シートのデータを保持する
         self.dataLine = 0  # データ開始行
@@ -144,7 +145,7 @@ class AgrenvModel():
                 False　作成失敗
         """
 
-        print("タイトル行の検索開始")
+        Debug.print("タイトル行の検索開始")
         obj = self.searchCells(self.TITLE_LINE_KEY.pattern)
         if obj is None:
             Debug.error('"取組名称"を含むセルが見つかりません')
@@ -230,9 +231,9 @@ class AgrenvModel():
             compareName = app.getApproachAndProduce()
 
         Debug.print("=============重複削除完了=============")
-        print("********** 取り組み一覧*************")
+        Debug.print("********** 取り組み一覧*************")
         for app in self.periodList:
-            print( app.print() )
+            Debug.print( app.print() )
 
     #############################
     #
@@ -267,9 +268,9 @@ class AgrenvModel():
             compareName = app.getPersonAndApproach()
 
         Debug.print("=============重複削除完了=============")
-        print("**********構成員別取り組み面積*************")
+        Debug.print("**********構成員別取り組み面積*************")
         for app in self.areaList:
-           print( app )
+           Debug.print( app )
 
     #############################
     #
@@ -302,9 +303,9 @@ class AgrenvModel():
             compareName = app.getApproachType()
 
         Debug.print("=============重複削除完了=============")
-        print("**********取組毎の面積*************")
+        Debug.print("**********取組毎の面積*************")
         for app in self.sumList:
-           print( app )
+           Debug.print( app )
 
     #############################
     #
@@ -356,6 +357,7 @@ class AgrenvModel():
             ["", "インセクタリープランツ", "", 8000, 0, "=sum(E10)", "=D10*F10/10", "=D10*F10/10"],
             ["", "", "", "", "=sum(E2:E10)", "=sum(F2:F10)", "=sum(G2:G10)", "=sum(H2:H10)"],
         ]
+
         book.openSheetByName(self.SUM_SHEET_NAME)  # 集計シート
         for row in range(1,12):
             for col in range(1,9):
@@ -417,6 +419,7 @@ class AgrenvModel():
             row += 1
 
         book.saveBook()
+        Debug.print("正常終了")
 
 ###########################
 #   テスト

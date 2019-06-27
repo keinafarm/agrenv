@@ -29,7 +29,7 @@ class SheetData(ExcelMan):
         super().openSheetByName(sheet)  # 対象となるシートを開く
         self._rows = super().numOfRow()
         self._cols = super().numOfCol()
-        print(sheet + "を読み込み 行数=" + str(self._rows) + " 列数=" + str(self._cols))
+        Debug.print(sheet + "を読み込み 行数=" + str(self._rows) + " 列数=" + str(self._cols))
         lineData = LineData([])
         for row in range(1, self._rows):
             for col in range(1, self._cols):
