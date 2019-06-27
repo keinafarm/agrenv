@@ -129,6 +129,7 @@ class   MainView():
 
     def print(self, text):
         self.debugText.insert(tk.END,text)
+        self.debugText.yview_moveto(1)
 
 
 ###########################
