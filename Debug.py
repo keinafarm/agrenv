@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import os
 
 class   Debug():
     """
@@ -15,8 +16,9 @@ class   Debug():
         :return:
         """
         frame = sys._getframe(1)
+        fileName = os.path.basename(frame.f_code.co_filename )
 
-        text = frame.f_code.co_filename + ":" + str(frame.f_lineno) + " " + str(message) + '\n'
+        text = fileName + ":" + str(frame.f_lineno) + " " + str(message) + '\n'
         if Debug.view :
             Debug.view.print(text)
         else:
@@ -30,7 +32,9 @@ class   Debug():
         :return:
         """
         frame = sys._getframe(1)
-        text = "!!!"+frame.f_code.co_filename + ":" + str(frame.f_lineno) + " " + str(message) + '\n'
+        fileName = os.path.basename(frame.f_code.co_filename )
+
+        text = "!!!"+ fileName + ":" + str(frame.f_lineno) + " " + str(message) + '\n'
         if Debug.view :
             Debug.view.print(text)
         else:
